@@ -1,5 +1,7 @@
-mod lexer;
 use std::io::{self, Write};
+
+mod lexer;
+mod token;
 
 fn main() {
     loop {
