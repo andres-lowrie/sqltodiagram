@@ -12,7 +12,7 @@ fn get_tokens(input: &str) -> Vec<token::Token> {
 
         match ch {
             Some(t) => {
-                let got = avail_tokens.get(&t);
+                let got = avail_tokens.get(&t.to_string());
                 match got {
                     Some(g) => {
                         // @TODO This is copying the token, can we get by with just referencing it?
