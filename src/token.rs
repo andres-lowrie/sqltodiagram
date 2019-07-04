@@ -1,4 +1,15 @@
 #[derive(PartialEq, Debug)]
+pub struct Token {
+    typ: TokenType,
+}
+
+impl Token {
+    pub fn new(typ: TokenType) -> Token {
+        Token { typ: typ }
+    }
+}
+
+#[derive(PartialEq, Debug)]
 pub enum TokenType {
     //UNKNOWN,
     //EOF,

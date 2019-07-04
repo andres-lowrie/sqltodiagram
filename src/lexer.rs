@@ -1,13 +1,13 @@
 use crate::token;
 
-fn get_tokens(input: &str) -> Vec<token::TokenType> {
+fn get_tokens(input: &str) -> Vec<token::Token> {
     let mut tokens = Vec::new();
 
     let mut chars = input.chars();
     let ch = chars.next();
 
     let x = match ch {
-        Some(_) => token::TokenType::Identifer,
+        Some(_) => token::Token::new(token::TokenType::Identifer),
         None => panic!("oops"),
     };
 
@@ -21,8 +21,9 @@ mod tests {
 
     #[test]
     fn it_can_return_tokens() {
-        let want = vec![token::TokenType::Identifer];
+        let want = vec![token::Token::new(token::TokenType::Identifer)];
         let got = get_tokens("a");
         assert_eq!(want, got);
     }
+
 }
