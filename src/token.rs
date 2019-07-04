@@ -14,7 +14,7 @@ impl Token {
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum TokenType {
     Unknown,
-    Identifer,
+    // Non-Alphanum
     Plus,
     Asterisk,
     Slash,
@@ -43,6 +43,12 @@ pub enum TokenType {
     Period,
     SingleQuote,
     DoubleQuote,
+    Space,
+    Tab,
+    Newline,
+    // Alphnum
+    Alpha,
+    Number,
 }
 
 pub fn tokens() -> HashMap<char, Token> {
@@ -76,5 +82,8 @@ pub fn tokens() -> HashMap<char, Token> {
     tokens.insert('.', Token::new(TokenType::Period));
     tokens.insert('\'', Token::new(TokenType::SingleQuote));
     tokens.insert('"', Token::new(TokenType::DoubleQuote));
+    tokens.insert(' ', Token::new(TokenType::Space));
+    tokens.insert('\t', Token::new(TokenType::Tab));
+    tokens.insert('\n', Token::new(TokenType::Newline));
     tokens
 }

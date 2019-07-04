@@ -33,7 +33,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_can_return_operator_tokens() {
+    fn it_can_tokenize_operator_tokens() {
         let want = vec![
             token::Token::new(token::TokenType::Plus),
             token::Token::new(token::TokenType::Asterisk),
@@ -67,12 +67,23 @@ mod tests {
     }
 
     #[test]
-    fn it_can_return_quotes() {
+    fn it_can_tokenize_quotes() {
         let want = vec![
             token::Token::new(token::TokenType::SingleQuote),
             token::Token::new(token::TokenType::DoubleQuote),
         ];
         let got = get_tokens("'\"");
+        assert_eq!(want, got);
+    }
+
+    #[test]
+    fn it_can_tokenize_whitespace() {
+        let want = vec![
+            token::Token::new(token::TokenType::Space),
+            token::Token::new(token::TokenType::Tab),
+            token::Token::new(token::TokenType::Newline),
+        ];
+        let got = get_tokens(" \t\n");
         assert_eq!(want, got);
     }
 
