@@ -12,13 +12,24 @@ fn get_tokens(input: &str) -> Vec<token::Token> {
 
         match ch {
             Some(t) => {
+                // Check for single character symbols first if none are found then search for
+                // keywords
                 let got = avail_tokens.get(&t.to_string());
                 match got {
-                    Some(g) => {
-                        // @TODO This is copying the token, can we get by with just referencing it?
-                        found_tokens.push(*g)
+                    // @TODO This is copying the token, can we get by with just referencing it?
+                    Some(g) => found_tokens.push(*g),
+                    // We maay have numbers or identifiers
+                    None => {
+                        if "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                            .contains(&t.to_string())
+                        {
+                            found_tokens.push(token::Token::new(token::TokenType::Alpha));
+                        } else if "0123456789".contains(&t.to_string()) {
+                            found_tokens.push(token::Token::new(token::TokenType::Number));
+                        } else {
+                            found_tokens.push(token::Token::new(token::TokenType::Unknown));
+                        }
                     }
-                    None => found_tokens.push(token::Token::new(token::TokenType::Unknown)),
                 };
             }
             None => break,
@@ -85,6 +96,28 @@ mod tests {
         ];
         let got = get_tokens(" \t\n");
         assert_eq!(want, got);
+    }
+
+    #[test]
+    fn it_can_tokenize_alhpa() {
+        let alpha = String::from_utf8((b'a'..=b'z').chain(b'A'..=b'Z').collect()).unwrap();
+        let got = get_tokens(&alpha);
+        assert_eq!(got.len(), 52);
+
+        for i in &got {
+            assert_eq!(*i, token::Token::new(token::TokenType::Alpha));
+        }
+    }
+
+    #[test]
+    fn it_can_tokenize_numbers() {
+        let nums = String::from_utf8((b'0'..=b'9').collect()).unwrap();
+        let got = get_tokens(&nums);
+        assert_eq!(got.len(), 10);
+
+        for i in &got {
+            assert_eq!(*i, token::Token::new(token::TokenType::Number));
+        }
     }
 
 }
