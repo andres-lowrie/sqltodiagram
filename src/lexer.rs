@@ -20,8 +20,8 @@ fn get_tokens(input: &str) -> Vec<Token> {
                 // keyword or identifer ends
                 //
                 let mut word = String::from("");
-
                 word.push(t);
+
                 loop {
                     ch = chars.next();
                     if let Some(c) = ch {
