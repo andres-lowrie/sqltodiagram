@@ -60,6 +60,7 @@ pub enum TokenType {
     KwAsc,
     KwAsymmetric,
     KwAuthorization,
+    KwBetween,
     KwBinary,
     KwBoth,
     KwCase,
@@ -197,6 +198,7 @@ pub fn keywords() -> HashMap<String, Token> {
         String::from("authorization"),
         Token::new(TokenType::KwAuthorization),
     );
+    tokens.insert(String::from("between"), Token::new(TokenType::KwBetween));
     tokens.insert(String::from("binary"), Token::new(TokenType::KwBinary));
     tokens.insert(String::from("both"), Token::new(TokenType::KwBoth));
     tokens.insert(String::from("case"), Token::new(TokenType::KwCase));
