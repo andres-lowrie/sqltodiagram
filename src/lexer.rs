@@ -1,38 +1,70 @@
-use crate::token;
+use crate::token::*;
 
-fn get_tokens(input: &str) -> Vec<token::Token> {
-    let avail_tokens = token::tokens();
+fn get_tokens(input: &str) -> Vec<Token> {
+    //let operators = _oken::operators();
+    let terminators = terminators();
+    let keywords = keywords();
 
-    let mut found_tokens = Vec::new();
-
+    // Input
     let mut chars = input.chars();
 
+    // Output
+    let mut found_tokens = Vec::new();
+
     loop {
-        let ch = chars.next();
+        let mut ch = chars.next();
 
         match ch {
             Some(t) => {
+                // @TODO change the approach here
+                // It should parse out keywords by consuming chars and identifying when each
+                // keyword or identifer ends
+                //
+                // Something like
                 // Check for single character symbols first if none are found then search for
                 // keywords
-                let got = avail_tokens.get(&t.to_string());
-                match got {
-                    // @TODO This is copying the token, can we get by with just referencing it?
-                    Some(g) => found_tokens.push(*g),
-                    // We maay have numbers or identifiers
-                    None => {
-                        if "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                            .contains(&t.to_string())
-                        {
-                            found_tokens.push(token::Token::new(token::TokenType::Alpha));
-                        } else if "0123456789".contains(&t.to_string()) {
-                            found_tokens.push(token::Token::new(token::TokenType::Number));
+                let mut word = String::from("");
+                if terminators.iter().any(|(k, _)| *k == t.to_string()) {
+                    println!("End of word top level");
+                } else {
+                    word.push(t);
+                    loop {
+                        ch = chars.next();
+                        if let Some(c) = ch {
+                            //println!("Some c from ch");
+                            //print!(" {:?}", c);
+                            if terminators.iter().any(|(k, _)| *k == c.to_string()) {
+                                println!("End of word in loop");
+                                match keywords.get(&word) {
+                                    Some(w) => found_tokens.push(w.clone()),
+                                    None => {
+                                        found_tokens.push(Token::new(TokenType::Identifer(word)))
+                                    }
+                                }
+                                break;
+                            } else {
+                                word.push(c);
+                            }
                         } else {
-                            found_tokens.push(token::Token::new(token::TokenType::Unknown));
+                            // This should catche the case where the token is that last thing in
+                            // the input ie: no new line or extra whitespace
+                            println!("End of nested loop");
+                            println!("{:?}", word);
+                            match keywords.get(&word) {
+                                Some(w) => found_tokens.push(w.clone()),
+                                None => found_tokens.push(Token::new(TokenType::Identifer(word))),
+                            }
+                            //print!("word {:?}", word);
+                            break;
                         }
                     }
-                };
+                }
+                //println!("word {:?}", word);
             }
-            None => break,
+            None => {
+                found_tokens.push(Token::new(TokenType::EOF));
+                break;
+            }
         };
     }
 
@@ -44,80 +76,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_can_tokenize_operator_tokens() {
+    fn it_can_tokenize_hello_world() {
         let want = vec![
-            token::Token::new(token::TokenType::Plus),
-            token::Token::new(token::TokenType::Asterisk),
-            token::Token::new(token::TokenType::Slash),
-            token::Token::new(token::TokenType::LeftAngle),
-            token::Token::new(token::TokenType::RightAngle),
-            token::Token::new(token::TokenType::Equals),
-            token::Token::new(token::TokenType::Tilde),
-            token::Token::new(token::TokenType::Bang),
-            token::Token::new(token::TokenType::At),
-            token::Token::new(token::TokenType::Hash),
-            token::Token::new(token::TokenType::Percent),
-            token::Token::new(token::TokenType::Caret),
-            token::Token::new(token::TokenType::Ampersand),
-            token::Token::new(token::TokenType::Pipe),
-            token::Token::new(token::TokenType::Backtick),
-            token::Token::new(token::TokenType::Question),
-            token::Token::new(token::TokenType::Hyphen),
-            token::Token::new(token::TokenType::Dollar),
-            token::Token::new(token::TokenType::LeftParen),
-            token::Token::new(token::TokenType::RightParen),
-            token::Token::new(token::TokenType::LeftBracket),
-            token::Token::new(token::TokenType::RightBracket),
-            token::Token::new(token::TokenType::Comma),
-            token::Token::new(token::TokenType::Semicolon),
-            token::Token::new(token::TokenType::Colon),
-            token::Token::new(token::TokenType::Period),
+            Token::new(TokenType::KwSelect),
+            Token::new(TokenType::Asterisk),
+            Token::new(TokenType::KwFrom),
+            Token::new(TokenType::Identifer(String::from("table"))),
+            Token::new(TokenType::EOF),
         ];
-        let got = get_tokens("+*/<>=~!@#%^&|`?-$()[],;:.");
+
+        let got = get_tokens("select * from table;");
         assert_eq!(want, got);
     }
-
-    #[test]
-    fn it_can_tokenize_quotes() {
-        let want = vec![
-            token::Token::new(token::TokenType::SingleQuote),
-            token::Token::new(token::TokenType::DoubleQuote),
-        ];
-        let got = get_tokens("'\"");
-        assert_eq!(want, got);
-    }
-
-    #[test]
-    fn it_can_tokenize_whitespace() {
-        let want = vec![
-            token::Token::new(token::TokenType::Space),
-            token::Token::new(token::TokenType::Tab),
-            token::Token::new(token::TokenType::Newline),
-        ];
-        let got = get_tokens(" \t\n");
-        assert_eq!(want, got);
-    }
-
-    #[test]
-    fn it_can_tokenize_alhpa() {
-        let alpha = String::from_utf8((b'a'..=b'z').chain(b'A'..=b'Z').collect()).unwrap();
-        let got = get_tokens(&alpha);
-        assert_eq!(got.len(), 52);
-
-        for i in &got {
-            assert_eq!(*i, token::Token::new(token::TokenType::Alpha));
-        }
-    }
-
-    #[test]
-    fn it_can_tokenize_numbers() {
-        let nums = String::from_utf8((b'0'..=b'9').collect()).unwrap();
-        let got = get_tokens(&nums);
-        assert_eq!(got.len(), 10);
-
-        for i in &got {
-            assert_eq!(*i, token::Token::new(token::TokenType::Number));
-        }
-    }
-
 }

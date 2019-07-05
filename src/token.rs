@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-#[derive(PartialEq, Debug, Copy, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Token {
     kind: TokenType,
 }
@@ -11,9 +11,11 @@ impl Token {
     }
 }
 
-#[derive(PartialEq, Debug, Copy, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum TokenType {
+    EOF,
     Unknown,
+    Identifer(String),
     // Non-Alphanum
     Plus,
     Asterisk,
@@ -49,11 +51,15 @@ pub enum TokenType {
     // Alphnum
     Alpha,
     Number,
+    // Keywords
+    KwSelect,
+    KwFrom,
 }
 
-pub fn tokens() -> HashMap<String, Token> {
+pub fn keywords() -> HashMap<String, Token> {
     let mut tokens: HashMap<String, Token> = HashMap::new();
 
+    // Non-Alphanum
     tokens.insert(String::from("+"), Token::new(TokenType::Plus));
     tokens.insert(String::from("*"), Token::new(TokenType::Asterisk));
     tokens.insert(String::from("/"), Token::new(TokenType::Slash));
@@ -77,13 +83,22 @@ pub fn tokens() -> HashMap<String, Token> {
     tokens.insert(String::from("["), Token::new(TokenType::LeftBracket));
     tokens.insert(String::from("]"), Token::new(TokenType::RightBracket));
     tokens.insert(String::from(","), Token::new(TokenType::Comma));
-    tokens.insert(String::from(";"), Token::new(TokenType::Semicolon));
     tokens.insert(String::from(":"), Token::new(TokenType::Colon));
     tokens.insert(String::from("."), Token::new(TokenType::Period));
     tokens.insert(String::from("'"), Token::new(TokenType::SingleQuote));
     tokens.insert(String::from("\""), Token::new(TokenType::DoubleQuote));
+    // Keywords
+    tokens.insert(String::from("select"), Token::new(TokenType::KwSelect));
+    tokens.insert(String::from("from"), Token::new(TokenType::KwFrom));
+    tokens
+}
+
+pub fn terminators() -> HashMap<String, Token> {
+    let mut tokens: HashMap<String, Token> = HashMap::new();
+
     tokens.insert(String::from(" "), Token::new(TokenType::Space));
     tokens.insert(String::from("\t"), Token::new(TokenType::Tab));
-    tokens.insert(String::from("\n"), Token::new(TokenType::Newline));
+    tokens.insert(String::from(";"), Token::new(TokenType::Semicolon));
+
     tokens
 }
