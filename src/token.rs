@@ -16,6 +16,7 @@ pub enum TokenType {
     EOF,
     Unknown,
     Identifer(String),
+    Str(String),
     // Non-Alphanum
     Plus,
     Asterisk,
