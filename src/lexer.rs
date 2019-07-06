@@ -50,8 +50,9 @@ fn get_tokens(input: &str) -> Vec<Token> {
 
                 loop {
                     if let Some(c) = cur {
-                        if terminators.iter().any(|(k, _)| *k == c.to_string()) {
-                            println!("Found Space {:?}", c);
+                        // Is this the end of the word?
+                        if terminators.iter().any(|(k, _)| *k == c.to_string()) || c == ')' {
+                            println!("Found Terminator {:?}", c);
                             break;
                         }
 
@@ -71,16 +72,18 @@ fn get_tokens(input: &str) -> Vec<Token> {
                         found_tokens.push(w.clone());
                     }
                     None => {
-                        //println!("Before word break {:?}, {:?}", word, t);
-                        //match t {
-                        //'(' => found_tokens.push(Token::new(TokenType::LeftParen)),
-                        //')' => found_tokens.push(Token::new(TokenType::RightParen)),
-                        //_ => found_tokens.push(Token::new(str_or_id(word.clone()))),
-                        //_ => {
                         println!("Found str/id {:?}\n", word);
                         found_tokens.push(Token::new(str_or_id(word.clone())));
-                        //}
-                        //}
+                        // -- YEAH.... this //
+                        if let Some(c) = cur {
+                            if !terminators.iter().any(|(k, _)| *k == c.to_string()) {
+                                println!("Found non terminator at `cur` after word {:?}\n", cur);
+                                if let Some(kw) = keywords.get(&c.to_string()) {
+                                    found_tokens.push(kw.clone());
+                                }
+                            }
+                        }
+                        // --
                     }
                 }
             }
