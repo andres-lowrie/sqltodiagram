@@ -34,6 +34,7 @@ fn get_tokens(input: &str) -> Vec<Token> {
         match cur {
             Some(' ') => { /* noop */ }
             Some('\t') => { /* noop */ }
+            Some(';') => { /* noop */ }
             Some(wrd) if in_keywords(wrd.to_string()) => {
                 println!("In t match {:?}, {:?}", wrd, cur);
                 if let Some(kw) = keywords.get(&wrd.to_string()) {
@@ -153,9 +154,9 @@ mod tests {
 
         let cases = vec![
             "select * from (select a from b where c)",
-            //"select * from (select a from b where c);",
-            //"select * from ( select a from b where c )",
-            //"select * from ( select a from b where c );",
+            "select * from (select a from b where c);",
+            "select * from ( select a from b where c )",
+            "select * from ( select a from b where c );",
         ];
 
         for c in cases {
