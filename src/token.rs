@@ -14,7 +14,6 @@ impl Token {
 #[derive(PartialEq, Debug, Clone)]
 pub enum TokenType {
     EOF,
-    Unknown,
     Identifer(String),
     Str(String),
     // Non-Alphanum
@@ -179,8 +178,6 @@ pub fn keywords() -> HashMap<String, Token> {
     tokens.insert(String::from(","), Token::new(TokenType::Comma));
     tokens.insert(String::from(":"), Token::new(TokenType::Colon));
     tokens.insert(String::from("."), Token::new(TokenType::Period));
-    tokens.insert(String::from("'"), Token::new(TokenType::SingleQuote));
-    tokens.insert(String::from("\""), Token::new(TokenType::DoubleQuote));
     // Keywords
     // https://www.postgresql.org/docs/9.0/sql-keywords-appendix.html
     tokens.insert(String::from("all"), Token::new(TokenType::KwAll));
