@@ -1,7 +1,0 @@
-[package]
-name = "sql2pic"
-version = "0.1.0"
-authors = ["Andres Lowrie <andres.lowrie@gmail.com>"]
-edition = "2018"
-
-[dependencies]
