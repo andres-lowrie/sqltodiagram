@@ -3,9 +3,17 @@
 import sys
 import json
 import psqlparse
+import os
 
 
-query = sys.argv[1] or ''
+# Input can be a file or direct sql statement
+inp = sys.argv[1] or ''
+query = inp
+
+if os.path.isfile(inp):
+    with open(inp, 'r') as f:
+        query = f.read()
+
 res = psqlparse.parse(query)
 
 if res:

@@ -1,0 +1,11 @@
+#+TITLE: notes
+
+* Return Types
+** targetList
+List of `ResTarget`s
+** ResTarget
+name = alias of column in result if given
+val = `ColumnRef`
+** ColumnRef
+holds the `field`s that will be returned.
+It can be keyed as type or have a special keys like "A_Star"
