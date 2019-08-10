@@ -1,0 +1,163 @@
+{
+  "targetList": [
+    {
+      "ResTarget": {
+        "val": {
+          "ColumnRef": {
+            "fields": [
+              {
+                "String": {
+                  "str": "tbl1"
+                }
+              },
+              {
+                "String": {
+                  "str": "a"
+                }
+              }
+            ],
+            "location": 7
+          }
+        },
+        "location": 7
+      }
+    },
+    {
+      "ResTarget": {
+        "val": {
+          "ColumnRef": {
+            "fields": [
+              {
+                "String": {
+                  "str": "tbl1"
+                }
+              },
+              {
+                "String": {
+                  "str": "b"
+                }
+              }
+            ],
+            "location": 15
+          }
+        },
+        "location": 15
+      }
+    },
+    {
+      "ResTarget": {
+        "val": {
+          "ColumnRef": {
+            "fields": [
+              {
+                "String": {
+                  "str": "tbl2"
+                }
+              },
+              {
+                "String": {
+                  "str": "c"
+                }
+              }
+            ],
+            "location": 23
+          }
+        },
+        "location": 23
+      }
+    },
+    {
+      "ResTarget": {
+        "val": {
+          "ColumnRef": {
+            "fields": [
+              {
+                "String": {
+                  "str": "tbl2"
+                }
+              },
+              {
+                "String": {
+                  "str": "d"
+                }
+              }
+            ],
+            "location": 31
+          }
+        },
+        "location": 31
+      }
+    }
+  ],
+  "fromClause": [
+    {
+      "JoinExpr": {
+        "jointype": 0,
+        "larg": {
+          "RangeVar": {
+            "relname": "tbl1",
+            "inhOpt": 2,
+            "relpersistence": "p",
+            "location": 45
+          }
+        },
+        "rarg": {
+          "RangeVar": {
+            "relname": "tbl2",
+            "inhOpt": 2,
+            "relpersistence": "p",
+            "location": 57
+          }
+        },
+        "quals": {
+          "A_Expr": {
+            "kind": 0,
+            "name": [
+              {
+                "String": {
+                  "str": "="
+                }
+              }
+            ],
+            "lexpr": {
+              "ColumnRef": {
+                "fields": [
+                  {
+                    "String": {
+                      "str": "tbl1"
+                    }
+                  },
+                  {
+                    "String": {
+                      "str": "id"
+                    }
+                  }
+                ],
+                "location": 65
+              }
+            },
+            "rexpr": {
+              "ColumnRef": {
+                "fields": [
+                  {
+                    "String": {
+                      "str": "tbl2"
+                    }
+                  },
+                  {
+                    "String": {
+                      "str": "id"
+                    }
+                  }
+                ],
+                "location": 75
+              }
+            },
+            "location": 73
+          }
+        }
+      }
+    }
+  ],
+  "op": 0
+}

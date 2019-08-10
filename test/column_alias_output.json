@@ -1,0 +1,33 @@
+{
+  "targetList": [
+    {
+      "ResTarget": {
+        "name": "foo_a",
+        "val": {
+          "ColumnRef": {
+            "fields": [
+              {
+                "String": {
+                  "str": "a"
+                }
+              }
+            ],
+            "location": 7
+          }
+        },
+        "location": 7
+      }
+    }
+  ],
+  "fromClause": [
+    {
+      "RangeVar": {
+        "relname": "tbl1",
+        "inhOpt": 2,
+        "relpersistence": "p",
+        "location": 23
+      }
+    }
+  ],
+  "op": 0
+}
