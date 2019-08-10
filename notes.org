@@ -2,10 +2,20 @@
 
 * Return Types
 ** targetList
-List of `ResTarget`s
+  List of `ResTarget`s
+  The table that we want to generate
 ** ResTarget
-name = alias of column in result if given
-val = `ColumnRef`
+   name = alias of column in result if given
+   val = `ColumnRef`
 ** ColumnRef
-holds the `field`s that will be returned.
-It can be keyed as type or have a special keys like "A_Star"
+  holds the `field`s that will be returned.
+  It can be keyed as type or have a special keys like "A_Star"
+** RangeSubselect
+   holds embedded select structure in `subquery`
+   and the alias that postgres requires in `alias`
+** RangeVar
+   Refers to the table
+* graphviz
+** "tables" need to be nodes
+** "columns" need to be "fields"
+** "edges" need to be relationships
