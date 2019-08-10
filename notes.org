@@ -19,3 +19,7 @@
 ** "tables" need to be nodes
 ** "columns" need to be "fields"
 ** "edges" need to be relationships
+* Things to handle
+** "resTargets" can have multiple fields in the columnRef dict
+   Whatever function ends up handling creating the table nodes should be able to
+   take both fqn (Fully Qualified Names) or just column names.
