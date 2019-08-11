@@ -1,5 +1,7 @@
 #+TITLE: notes
 
+* If we're going to create all the tables first then we need to parse inside out
+  where all the tables from the subquery are processed first
 * Return Types
 ** targetList
   List of `ResTarget`s

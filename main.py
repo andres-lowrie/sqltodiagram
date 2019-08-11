@@ -10,8 +10,10 @@ from sql_types import Table, Column
 
 from graphviz import Digraph
 
+
 def flatmap(func, *iterable):
     return itertools.chain.from_iterable(map(func, *iterable))
+
 
 # Input can be a file or direct sql statement
 inp = sys.argv[1] or ""
@@ -29,14 +31,7 @@ if not res:
 g = Digraph("g", format="png", filename="output.gv", node_attr={"shape": "record"})
 
 
-# At this point we'll know that we will always have an output table because the parser would've failed by now
-tables = {}
-
-
-def handle_tbl(tbl, target_list, resolve_names=False):
-    t_name = tbl["relname"]
-    tables[t_name] = Table(t_name)
-
+def handle_cols(target_list):
     # Now we can traverse the columns in the output table (the otter most table) and see if we have any columns that we can
     # link up
     for res_target in target_list:
@@ -80,19 +75,38 @@ def handle_tbl(tbl, target_list, resolve_names=False):
             if name_field:
                 name = name_field["str"]
 
-        c = Column(name, is_star=is_star, table=tables[t_name])
+        c = Column(name, is_star=is_star, table=tables["output"])
+        tables["output"].columns.append(c)
+
         # Figure out where this column came from.
-        # If the sql stmt didn't use the `tbl.col` syntax then the best we can do is point to the table
-        if resolve_names:
-            if using_fqn is False:
-                c.came_from = tables[t_name]
+        if using_fqn is True:
+            ancestor_tbl_name = fields[0].get("String").get("str")
+            # In order to make a more specific graph, we'll copy this column onto the ancestor table so that the edge
+            # can point to it specifically
+            ancestor_col = Column(
+                name, is_star=is_star, table=tables[ancestor_tbl_name]
+            )
+            tables[ancestor_tbl_name].columns.append(ancestor_col)
+            c.came_from = (tables[ancestor_tbl_name], ancestor_col)
 
-        tables[t_name].columns.append(c)
+        # If the sql stmt didn't use the `tbl.col` syntax then the best we can do is have the output table point to the
+        # table instead of to the column
+        # We'll only want to draw one line between columns and tables to keep the graph readable.
+        # -tables["output"].table_links.append()
+        other_tables = [
+            tables[k]
+            for k, v in tables.items()
+            if k != "output" and k not in [t.name for t in tables["output"].table_links]
+        ]
+        tables["output"].table_links.extend(other_tables)
 
 
-# The outter most `From` statement is where we can start identifying where the columns in the output table are coming
-# from
-def handle_sql_stmt(res):
+def handle_tbl(tbl):
+    t_name = tbl["relname"]
+    tables[t_name] = Table(t_name)
+
+
+def handle_from_clause(res):
     for frm in res["fromClause"]:
         # @TODO not all from statements are simple "RangeVar"s and thus we'll need to check expression type in order to see
         # where in the strucutre the rangevar (ie table) is
@@ -107,48 +121,62 @@ def handle_sql_stmt(res):
             # JoinExpr will contain 2 tables, a left table and a right one. We need to check each of those tables to see if
             # the output table has columns that reference them
             joined_tables = map(lambda x: tbl.get(x).get("RangeVar"), ["larg", "rarg"])
-            [handle_tbl(t, res.get("targetList")) for t in joined_tables]
+            [handle_tbl(t) for t in joined_tables]
             return
 
-        handle_tbl(tbl, res.get("targetList"))
+        t_name = tbl["relname"]
+        tables[t_name] = Table(t_name)
 
 
 # OUTPUT
+# The `output` referes to the table that the select statement is creating.
+tables = {"output": Table("output")}
 
-# Parse the statement
-handle_sql_stmt(res)
+# Create all the tables the query references
+handle_from_clause(res)
 
-# Create the output table
-tables["output"] = Table("output")
-handle_tbl({"relname": "output"}, res["targetList"], resolve_names=True)
+# Add the selected columns to the output table
+handle_cols(res["targetList"])
 
-columns = list(flatmap(lambda c: c, [t.columns for t in tables.values()]))
 
-# print(tables["output"].columns[0].came_from)
+# RENDERING
+
+# Evert table will be a struct
 for t in tables.values():
-    print("table", t, t.name)
-    print(t.name)
-    # [print(i.name) for i in t.columns]
     g.node(
         t.name,
         "{" + t.repre + "|{" + "|".join(map(lambda c: c.repre, t.columns)) + "}" + "}",
     )
+    # make edges
+    for tl in t.table_links:
+        g.edge(f"{t.name}:{t.id}", f"{tl.name}:{tl.id}")
+# # Create the output table
+# # tables["output"] = Table("output")
+# # handle_tbl({"relname": "output"}, res["targetList"], resolve_names=True)
 
-    # Create edges
-    for c in t.columns:
-        if c.came_from:
-            g.edge(f"{c.table.name}:{c.id}", f"{c.came_from.name}:{c.came_from.id}")
-        else:
-            for rc in columns:
-                if rc.id is not c.id:
-                    g.edge(f"{c.table.name}:{c.id}", f"{c.came_from.name}:{c.came_from.id}")
+# columns = list(flatmap(lambda c: c, [t.columns for t in tables.values()]))
 
-        # print(c.came_from)
-# g.node(output_tbl.name, "|".join(fields))
+# # print(tables["output"].columns[0].came_from)
+# for t in tables.values():
+#     print("table", t, t.name)
+#     print(t.name)
+#     # [print(i.name) for i in t.columns]
 
-# # Source Tables
-# g.node(frm.name, frm.repre)
-# g.edges([("result:f0", "from:f0")])
+#     # # Create edges
+#     # for c in t.columns:
+#     #     if c.came_from:
+#     #         g.edge(f"{c.table.name}:{c.id}", f"{c.came_from.name}:{c.came_from.id}")
+#     #     else:
+#     #         for rc in columns:
+#     #             if rc.id is not c.id:
+#     #                 g.edge(f"{c.table.name}:{c.id}", f"{c.came_from.name}:{c.came_from.id}")
+
+#     # print(c.came_from)
+# # g.node(output_tbl.name, "|".join(fields))
+
+# # # Source Tables
+# # g.node(frm.name, frm.repre)
+# # g.edges([("result:f0", "from:f0")])
 
 
 # # Output
