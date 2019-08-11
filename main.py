@@ -10,12 +10,8 @@ from sql_types import Table, Column
 
 from graphviz import Digraph
 
-
-def flatmap(func, *iterable):
-    return itertools.chain.from_iterable(map(func, *iterable))
-
-
 # Input can be a file or direct sql statement
+# @TODO use argparse
 inp = sys.argv[1] or ""
 preview = True if sys.argv[2] == "y" else False
 query = inp
@@ -28,49 +24,68 @@ res = psqlparse.parse(query)[0]._obj
 if not res:
     raise Exception("No result from psqlparse")
 
-g = Digraph("g", format="png", filename="output.gv", node_attr={"shape": "record"})
-
 
 def handle_cols(target_list):
-    # Now we can traverse the columns in the output table (the otter most table) and see if we have any columns that we can
-    # link up
-    for res_target in target_list:
-        # @NOTE
-        # The number of fields corresponds to the `dots` in the column name so if use the fqn of a column then each
-        # ColumnRef will have 2 fields; the left side of the dot ie: the table name and the right hand side of the dot , the
-        # column name
-        #
-        # When an "*" is passed as select the field shape changes, it's:
-        #     "A_Star": {}
-        #
-        # The typical shape will be 1 item, with a dict keyed like "String" which holds a field "str" that is the actual
-        # name we want
-        #     ["fields"][0]["String"]["str"]
+    """
+    Traverse the columns in the output table (the otter most table) and see if we can link up columns to the table
+    references.
 
+    @TODO: Remove dependency on global "tables"
+    @TODO: Create types for the maps the parser outputs?
+
+    Args:
+        target_list (list): List of `ResTarget`s as per the parser
+    """
+    for res_target in target_list:
+        # The number of fields corresponds to the `dots` in the column name passed into the SqlStatement ie:
+        #     col_name
+        #     tbl.col_name
+        #     tbl.*
+        #
+        # The shapes of the "field" strucutre look like this:
+        #
+        # When just the col_name is used:
+        #     ```
+        #     {
+        #         "String": {"str": "col_name"}
+        #     }
+        #     ```
+        #
+        # When an asterisk is used:
+        #     ```
+        #     {
+        #         "A_Star": {}
+        #     }
+        #     ```
+        #
+        # So if the Fully Qualified Name (fqn) of a column is used then each 2 fields are returned; the left
+        # side of the dot ie. the table name and the right hand side of the dot, the column name
+        #
+        # When an fqn is used:
+        #     ```
+        #     {
+        #         "String": {"str": "table_name"}
+        #     },
+        #     {
+        #         "String": {"str": "col_name"}
+        #     }
+        #     ```
         target = res_target["ResTarget"]
         fields = target["val"]["ColumnRef"]["fields"]
         using_fqn = True if len(fields) > 1 else False
 
         # What should we label the column?
         #
-        # The Column type will also handle naming the column if an asterisk is used so we don't have to come up with a
-        # name here
+        # The `Column` type will handle naming the column when an asterisk is used so we don't have to come up with a
+        # name here we only need to identify that an asterisk is used
         is_star = False
-        # If an alias was passed then we can just use that directly, if not we'll have to check the fields list to
-        # determine a name
+
+        # When an alias is passed, the parser makes that name available directly on the `ResTarget` shape
         name = target.get("name", None)
         if name is None:
-            # Select syntax is:
-            #     col_name
-            #     tbl.col_name
-            #     tbl.*
-            # Figure out which one
+            name_field = fields[-1].get("String", None)
 
-            # The parser will return the right side of the select syntax as the last item in the list
-            id_field = fields[-1]
-            name_field = id_field.get("String", None)
-
-            # Handle the "select all from table" syntax
+            # Handle the "select all from table" syntax ie: "tbl.*"
             is_star = False if name_field else True
             if name_field:
                 name = name_field["str"]
@@ -82,7 +97,7 @@ def handle_cols(target_list):
         if using_fqn is True:
             ancestor_tbl_name = fields[0].get("String").get("str")
             # In order to make a more specific graph, we'll copy this column onto the ancestor table so that the edge
-            # can point to it specifically
+            # can point to it
             ancestor_col = Column(
                 name, is_star=is_star, table=tables[ancestor_tbl_name]
             )
@@ -90,36 +105,47 @@ def handle_cols(target_list):
             c.came_from = (tables[ancestor_tbl_name], ancestor_col)
         else:
             # If the sql stmt didn't use the `tbl.col` syntax then the best we can do is have the output table point to the
-            # table instead of to the column
-            # We'll only want to draw one line between columns and tables to keep the graph readable.
-            # -tables["output"].table_links.append()
+            # tables outlined in the `from` section of the sql statement
+            #
+            # We'll only want to draw one line between columns and tables to keep the graph readable
             other_tables = [
                 tables[k]
                 for k, v in tables.items()
-                if k != "output" and k not in [t.name for t in tables["output"].table_links]
+                if k != "output"
+                and k not in [t.name for t in tables["output"].table_links]
             ]
             tables["output"].table_links.extend(other_tables)
 
 
 def handle_tbl(tbl):
+    """
+    Create a Table object and place it into the map of Tables.
+
+    Args:
+        tbl (dict): A `RangeVar` shape as per the parser
+    """
     t_name = tbl["relname"]
     tables[t_name] = Table(t_name)
 
 
 def handle_from_clause(res):
+    """
+    Pull out the tables from the parser output structure
+
+    Args:
+        res (dict): The response structure from the parser
+    """
     for frm in res["fromClause"]:
-        # @TODO not all from statements are simple "RangeVar"s and thus we'll need to check expression type in order to see
-        # where in the strucutre the rangevar (ie table) is
+        # Not all from statements are simple "RangeVar"s and thus we'll need to check expression type in order to see
+        # where in the strucutre the `RangeVar` (ie Table) is
         tbl = frm.get("RangeVar", None)
 
         if tbl is None:
-            # Then we're dealing with a JOIN expression
+            # @TODO This could also be SubQuery style. I think we it can be either a Join or
+            # SubQuery and those can hold each other within themselves...need to check postgres manual to confrim
             tbl = frm.get("JoinExpr", None)
             assert tbl is not None, "@TODO: support this query"
 
-            # @TODO
-            # JoinExpr will contain 2 tables, a left table and a right one. We need to check each of those tables to see if
-            # the output table has columns that reference them
             joined_tables = map(lambda x: tbl.get(x).get("RangeVar"), ["larg", "rarg"])
             [handle_tbl(t) for t in joined_tables]
             return
@@ -128,6 +154,8 @@ def handle_from_clause(res):
         tables[t_name] = Table(t_name)
 
 
+# @TODO wrap this process in a function so we can call it recursively since the structure parser (and the nature of sql
+# as I understand it) is recursive
 # OUTPUT
 # The `output` referes to the table that the select statement is creating.
 tables = {"output": Table("output")}
@@ -140,8 +168,7 @@ handle_cols(res["targetList"])
 
 
 # RENDERING
-
-# Evert table will be a struct
+g = Digraph("g", format="png", filename="output.gv", node_attr={"shape": "record"})
 for t in tables.values():
     g.node(
         t.name,
@@ -155,34 +182,6 @@ for t in tables.values():
         if c.came_from:
             rt, rc = c.came_from
             g.edge(f"{t.name}:{c.id}", f"{rt.name}:{rc.id}")
-# # Create the output table
-# # tables["output"] = Table("output")
-# # handle_tbl({"relname": "output"}, res["targetList"], resolve_names=True)
-
-# columns = list(flatmap(lambda c: c, [t.columns for t in tables.values()]))
-
-# # print(tables["output"].columns[0].came_from)
-# for t in tables.values():
-#     print("table", t, t.name)
-#     print(t.name)
-#     # [print(i.name) for i in t.columns]
-
-#     # # Create edges
-#     # for c in t.columns:
-#     #     if c.came_from:
-#     #         g.edge(f"{c.table.name}:{c.id}", f"{c.came_from.name}:{c.came_from.id}")
-#     #     else:
-#     #         for rc in columns:
-#     #             if rc.id is not c.id:
-#     #                 g.edge(f"{c.table.name}:{c.id}", f"{c.came_from.name}:{c.came_from.id}")
-
-#     # print(c.came_from)
-# # g.node(output_tbl.name, "|".join(fields))
-
-# # # Source Tables
-# # g.node(frm.name, frm.repre)
-# # g.edges([("result:f0", "from:f0")])
-
 
 # # Output
 print(g.source)
