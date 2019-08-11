@@ -88,17 +88,17 @@ def handle_cols(target_list):
             )
             tables[ancestor_tbl_name].columns.append(ancestor_col)
             c.came_from = (tables[ancestor_tbl_name], ancestor_col)
-
-        # If the sql stmt didn't use the `tbl.col` syntax then the best we can do is have the output table point to the
-        # table instead of to the column
-        # We'll only want to draw one line between columns and tables to keep the graph readable.
-        # -tables["output"].table_links.append()
-        other_tables = [
-            tables[k]
-            for k, v in tables.items()
-            if k != "output" and k not in [t.name for t in tables["output"].table_links]
-        ]
-        tables["output"].table_links.extend(other_tables)
+        else:
+            # If the sql stmt didn't use the `tbl.col` syntax then the best we can do is have the output table point to the
+            # table instead of to the column
+            # We'll only want to draw one line between columns and tables to keep the graph readable.
+            # -tables["output"].table_links.append()
+            other_tables = [
+                tables[k]
+                for k, v in tables.items()
+                if k != "output" and k not in [t.name for t in tables["output"].table_links]
+            ]
+            tables["output"].table_links.extend(other_tables)
 
 
 def handle_tbl(tbl):
@@ -150,6 +150,11 @@ for t in tables.values():
     # make edges
     for tl in t.table_links:
         g.edge(f"{t.name}:{t.id}", f"{tl.name}:{tl.id}")
+
+    for c in t.columns:
+        if c.came_from:
+            rt, rc = c.came_from
+            g.edge(f"{t.name}:{c.id}", f"{rt.name}:{rc.id}")
 # # Create the output table
 # # tables["output"] = Table("output")
 # # handle_tbl({"relname": "output"}, res["targetList"], resolve_names=True)
