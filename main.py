@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 
 import itertools
-import sys
 import json
-import psqlparse
 import os
+import sys
+from uuid import uuid4
 
-from sql_types import Table, Column
-
+import psqlparse
 from graphviz import Digraph
+
+from sql_types import Column, Table
 
 # Input can be a file or direct sql statement
 # @TODO use argparse
@@ -25,7 +26,7 @@ if not res:
     raise Exception("No result from psqlparse")
 
 
-def handle_cols(target_list, tables=None):
+def handle_cols(target_list, output, tables=None):
     """
     Traverse the columns in the output table (the otter most table) and see if we can link up columns to the table
     references.
@@ -34,6 +35,7 @@ def handle_cols(target_list, tables=None):
 
     Args:
         target_list (list): List of `ResTarget`s as per the parser
+        output (str): The name of the output table where columns will be added
         tables (dict): Map of currently known tables. Dict is mutated.
     """
     for res_target in target_list:
@@ -90,8 +92,8 @@ def handle_cols(target_list, tables=None):
             if name_field:
                 name = name_field["str"]
 
-        c = Column(name, is_star=is_star, table=tables["output"])
-        tables["output"].columns.append(c)
+        c = Column(name, is_star=is_star, table=tables[output])
+        tables[output].columns.append(c)
 
         # Figure out where this column came from.
         if using_fqn is True:
@@ -111,10 +113,9 @@ def handle_cols(target_list, tables=None):
             other_tables = [
                 tables[k]
                 for k, v in tables.items()
-                if k != "output"
-                and k not in [t.name for t in tables["output"].table_links]
+                if k != output and k not in [t.name for t in tables[output].table_links]
             ]
-            tables["output"].table_links.extend(other_tables)
+            tables[output].table_links.extend(other_tables)
 
 
 def handle_tbl(tbl, tables=None):
@@ -129,12 +130,13 @@ def handle_tbl(tbl, tables=None):
     tables[t_name] = Table(t_name)
 
 
-def handle_from_clause(res, tables=None):
+def handle_from_clause(res, output, tables=None):
     """
     Pull out the tables from the parser output structure
 
     Args:
         res (dict): The response structure from the parser
+        output (str): The name of the output table where tables will be added
         tables (dict): Map of currently known tables. Dict is mutated.
     """
     for frm in res["fromClause"]:
@@ -156,17 +158,30 @@ def handle_from_clause(res, tables=None):
         tables[t_name] = Table(t_name)
 
 
+def looks_like_res(shape):
+    return ["targetList", "fromClause" "op"] in shape.keys()
+
+def parse_select_stmt(res, tables=None):
+    """
+    Create tables and populate them with columns from parser's output
+
+    Args:
+        res (dict): The response structure from the parser
+        tables (dict): Map of currently known tables. Dict is mutated.
+    """
+    output_name = f"output-{str(uuid4())[:8]}"
+    tables = {output_name: Table(output_name)}
+
+    handle_from_clause(res, output_name, tables)
+    handle_cols(res["targetList"], output_name, tables)
+    return tables
+
+
 # @TODO wrap this process in a function so we can call it recursively since the structure parser (and the nature of sql
 # as I understand it) is recursive
 # OUTPUT
 # The `output` referes to the table that the select statement is creating.
-tables = {"output": Table("output")}
-
-# Create all the tables the query references
-handle_from_clause(res, tables)
-
-# Add the selected columns to the output table
-handle_cols(res["targetList"], tables)
+tables = parse_select_stmt(res, {})
 
 
 # RENDERING

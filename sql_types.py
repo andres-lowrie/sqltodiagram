@@ -13,11 +13,8 @@ class Table:
         self.columns = []
 
         # The Dot|Graphviz representation
-        self.id = str(uuid4()).split("-")[0]
+        self.id = str(uuid4())[:8]
         self.repre = f"<{self.id}> {self.name}"
-        # self.repre = f"<{{{self.id}> {self.name}|{{{'|'.join(map(lambda c: c.repre, self.columns))}"
-        #         "{" + t.repre + "|{" + "|".join(map(lambda c: c.repre, t.columns)) + "}" + "}",
-
 
         # References to other tables. Used to create edges to unspecific columns
         self.table_links = []
@@ -41,5 +38,5 @@ class Column:
         self.table = table
 
         # The Dot|Graphviz representation
-        self.id = str(uuid4()).split("-")[0]
+        self.id = str(uuid4())[:8]
         self.repre = f"<{self.id}> {self.name}"
