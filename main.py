@@ -25,16 +25,16 @@ if not res:
     raise Exception("No result from psqlparse")
 
 
-def handle_cols(target_list):
+def handle_cols(target_list, tables=None):
     """
     Traverse the columns in the output table (the otter most table) and see if we can link up columns to the table
     references.
 
-    @TODO: Remove dependency on global "tables"
     @TODO: Create types for the maps the parser outputs?
 
     Args:
         target_list (list): List of `ResTarget`s as per the parser
+        tables (dict): Map of currently known tables. Dict is mutated.
     """
     for res_target in target_list:
         # The number of fields corresponds to the `dots` in the column name passed into the SqlStatement ie:
@@ -117,23 +117,25 @@ def handle_cols(target_list):
             tables["output"].table_links.extend(other_tables)
 
 
-def handle_tbl(tbl):
+def handle_tbl(tbl, tables=None):
     """
     Create a Table object and place it into the map of Tables.
 
     Args:
         tbl (dict): A `RangeVar` shape as per the parser
+        tables (dict): Map of currently known tables. Dict is mutated.
     """
     t_name = tbl["relname"]
     tables[t_name] = Table(t_name)
 
 
-def handle_from_clause(res):
+def handle_from_clause(res, tables=None):
     """
     Pull out the tables from the parser output structure
 
     Args:
         res (dict): The response structure from the parser
+        tables (dict): Map of currently known tables. Dict is mutated.
     """
     for frm in res["fromClause"]:
         # Not all from statements are simple "RangeVar"s and thus we'll need to check expression type in order to see
@@ -147,7 +149,7 @@ def handle_from_clause(res):
             assert tbl is not None, "@TODO: support this query"
 
             joined_tables = map(lambda x: tbl.get(x).get("RangeVar"), ["larg", "rarg"])
-            [handle_tbl(t) for t in joined_tables]
+            [handle_tbl(t, tables) for t in joined_tables]
             return
 
         t_name = tbl["relname"]
@@ -161,10 +163,10 @@ def handle_from_clause(res):
 tables = {"output": Table("output")}
 
 # Create all the tables the query references
-handle_from_clause(res)
+handle_from_clause(res, tables)
 
 # Add the selected columns to the output table
-handle_cols(res["targetList"])
+handle_cols(res["targetList"], tables)
 
 
 # RENDERING
