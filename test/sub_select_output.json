@@ -33,146 +33,69 @@
         },
         "location": 10
       }
-    },
-    {
-      "ResTarget": {
-        "val": {
-          "ColumnRef": {
-            "fields": [
-              {
-                "String": {
-                  "str": "c"
-                }
-              }
-            ],
-            "location": 13
-          }
-        },
-        "location": 13
-      }
-    },
-    {
-      "ResTarget": {
-        "val": {
-          "ColumnRef": {
-            "fields": [
-              {
-                "String": {
-                  "str": "d"
-                }
-              }
-            ],
-            "location": 16
-          }
-        },
-        "location": 16
-      }
     }
   ],
   "fromClause": [
     {
-      "JoinExpr": {
-        "jointype": 0,
-        "larg": {
-          "RangeSubselect": {
-            "subquery": {
-              "SelectStmt": {
-                "targetList": [
-                  {
-                    "ResTarget": {
-                      "val": {
-                        "ColumnRef": {
-                          "fields": [
-                            {
-                              "String": {
-                                "str": "d"
-                              }
-                            }
-                          ],
-                          "location": 33
-                        }
-                      },
-                      "location": 33
-                    }
-                  }
-                ],
-                "fromClause": [
-                  {
-                    "RangeVar": {
-                      "relname": "tbl2",
-                      "inhOpt": 2,
-                      "relpersistence": "p",
-                      "location": 40
-                    }
-                  }
-                ],
-                "op": 0
-              }
-            },
-            "alias": {
-              "Alias": {
-                "aliasname": "foo"
-              }
-            }
-          }
-        },
-        "rarg": {
-          "RangeVar": {
-            "relname": "bar",
-            "inhOpt": 2,
-            "relpersistence": "p",
-            "location": 60
-          }
-        },
-        "quals": {
-          "A_Expr": {
-            "kind": 0,
-            "name": [
-              {
-                "String": {
-                  "str": "="
-                }
-              }
-            ],
-            "lexpr": {
-              "ColumnRef": {
-                "fields": [
-                  {
-                    "String": {
-                      "str": "foo"
-                    }
-                  },
-                  {
-                    "String": {
-                      "str": "id"
-                    }
-                  }
-                ],
-                "location": 67
-              }
-            },
-            "rexpr": {
-              "ColumnRef": {
-                "fields": [
-                  {
-                    "String": {
-                      "str": "bar"
-                    }
-                  },
-                  {
-                    "String": {
-                      "str": "id"
-                    }
-                  }
-                ],
-                "location": 76
-              }
-            },
-            "location": 74
-          }
-        }
+      "RangeVar": {
+        "relname": "tbl1",
+        "inhOpt": 2,
+        "relpersistence": "p",
+        "location": 17
       }
     }
   ],
+  "whereClause": {
+    "SubLink": {
+      "subLinkType": 2,
+      "testexpr": {
+        "ColumnRef": {
+          "fields": [
+            {
+              "String": {
+                "str": "a"
+              }
+            }
+          ],
+          "location": 30
+        }
+      },
+      "subselect": {
+        "SelectStmt": {
+          "targetList": [
+            {
+              "ResTarget": {
+                "val": {
+                  "ColumnRef": {
+                    "fields": [
+                      {
+                        "String": {
+                          "str": "c"
+                        }
+                      }
+                    ],
+                    "location": 43
+                  }
+                },
+                "location": 43
+              }
+            }
+          ],
+          "fromClause": [
+            {
+              "RangeVar": {
+                "relname": "tbl2",
+                "inhOpt": 2,
+                "relpersistence": "p",
+                "location": 50
+              }
+            }
+          ],
+          "op": 0
+        }
+      },
+      "location": 32
+    }
+  },
   "op": 0
 }

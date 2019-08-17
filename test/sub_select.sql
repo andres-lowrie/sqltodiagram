@@ -1,19 +1,5 @@
-SELECT a, b, c, d
-FROM
-  (SELECT d FROM tbl2) AS foo
-  JOIN bar ON foo.id = bar.id
+SELECT a, b
+FROM tbl1
+WHERE
+  a IN (SELECT c FROM tbl2)
 ;
--- It should be able to pick out that `d` comes from the `foo` subselect while
--- the other columns come from `bar`
---
---
---     _________________
---     | a | b | c | d |
---     -----------------
---       |  |    /     \
---       |  |   /       \
---     ____________      _______
---     |   bar    |      | foo |
---     |==========|      |=====|
---     | a | b | c|      |  d  |
---     ------------      -------
