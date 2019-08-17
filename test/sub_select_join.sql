@@ -1,4 +1,4 @@
-SELECT a, b, c, d
+SELECT a, b, c, foo.d
 FROM
   (SELECT d FROM tbl2) AS foo
   JOIN bar ON foo.id = bar.id

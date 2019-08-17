@@ -1,0 +1,74 @@
+{
+  "targetList": [
+    {
+      "ResTarget": {
+        "val": {
+          "ColumnRef": {
+            "fields": [
+              {
+                "String": {
+                  "str": "a"
+                }
+              }
+            ],
+            "location": 7
+          }
+        },
+        "location": 7
+      }
+    },
+    {
+      "ResTarget": {
+        "val": {
+          "ColumnRef": {
+            "fields": [
+              {
+                "String": {
+                  "str": "b"
+                }
+              }
+            ],
+            "location": 10
+          }
+        },
+        "location": 10
+      }
+    },
+    {
+      "ResTarget": {
+        "val": {
+          "ColumnRef": {
+            "fields": [
+              {
+                "String": {
+                  "str": "c"
+                }
+              }
+            ],
+            "location": 13
+          }
+        },
+        "location": 13
+      }
+    }
+  ],
+  "fromClause": [
+    {
+      "RangeVar": {
+        "relname": "tbl1",
+        "inhOpt": 2,
+        "relpersistence": "p",
+        "location": 20
+      }
+    },
+    {
+      "RangeVar": {
+        "relname": "tbl2",
+        "inhOpt": 2,
+        "relpersistence": "p",
+        "location": 26
+      }
+    }
+  ],
+  "op": 0
+}

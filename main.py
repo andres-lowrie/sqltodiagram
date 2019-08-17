@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import pdb
 import itertools
 import json
 import os
@@ -9,7 +10,7 @@ from uuid import uuid4
 import psqlparse
 from graphviz import Digraph
 
-from sql_types import Column, Table
+from graph_types import Column, Table
 
 # Input can be a file or direct sql statement
 # @TODO use argparse
@@ -31,7 +32,7 @@ if dump_sql:
     sys.exit(0)
 
 
-def handle_cols(target_list, output, tables=None, with_links=True):
+def handle_cols(target_list, output, tables=None):
     """
     Traverse the columns in the output table (the otter most table) and see if we can link up columns to the table
     references.
@@ -111,7 +112,7 @@ def handle_cols(target_list, output, tables=None, with_links=True):
             )
             tables[ancestor_tbl_name].columns.append(ancestor_col)
             c.came_from = (tables[ancestor_tbl_name], ancestor_col)
-        elif with_links:
+        else:
             # If the sql stmt didn't use the `tbl.col` syntax then the best we can do is have the output table point to the
             # tables outlined in the `from` section of the sql statement
             #
@@ -124,7 +125,7 @@ def handle_cols(target_list, output, tables=None, with_links=True):
             tables[output].table_links.extend(other_tables)
 
 
-def handle_tbl(tbl, tables=None):
+def name_tbl(tbl, tables=None):
     """
     Create a Table object and place it into the map of Tables.
 
@@ -132,37 +133,10 @@ def handle_tbl(tbl, tables=None):
         tbl (dict): A `RangeVar` shape as per the parser
         tables (dict): Map of currently known tables. Dict is mutated.
     """
-    t_name = tbl["relname"]
+    use_alias = tbl.get("alias", {}).get("Alias", {}).get("aliasname", None)
+    t_name = use_alias if use_alias else tbl["relname"]
     tables[t_name] = Table(t_name)
-
-
-def handle_where_clause():
-    raise NotImplementedError()
-
-
-def handle_joins(res, output, tables=None):
-    tbl = res.get("RangeVar", None)
-    if tbl:
-        return handle_tbl(tbl, tables)
-
-    tbl = res.get("RangeSubselect", None)
-    assert (
-        tbl is not None
-    ), "Expecting 'JoinExpr' to have either a RangeVar to RangeSubselect"
-
-    stmt = tbl.get("subquery", {}).get("SelectStmt", None)
-    assert stmt is not None, "Could not find subquery.SelectStmt in JoinExpr"
-
-    # @TODO instead of mutating data, change the handle_from_clause to accepct different types of dicts that resemble a
-    # table
-    #
-    # Mutate the nested shape to that function that makes table can handle it as written
-    alias = tbl.get("alias", {}).get("Alias", {}).get("aliasname", None)
-    if alias:
-        for t in stmt["fromClause"]:
-            t["RangeVar"]["relname"] = alias
-
-    return handle_select_stmt(stmt, alias, tables, with_links=False)
+    return t_name
 
 
 def handle_from_clause(res, output, tables=None):
@@ -174,34 +148,39 @@ def handle_from_clause(res, output, tables=None):
         output (str): The name of the output table where tables will be added
         tables (dict): Map of currently known tables. Dict is mutated.
     """
-    # Not all from statements are simple "RangeVar"s and thus we'll need to check expression type in order to see
-    # where in the strucutre the `RangeVar` (ie Table) is
+    if type(res) == dict:
+        res = res.get("fromClause", res)
+
     for frm in res:
+        # Get to the lowest grain first
+
+        tbl = frm.get("RangeSubselect")
+        if tbl:
+            new_tbl_name = name_tbl(tbl, tables)
+            return handle_select_stmt(
+                tbl["subquery"]["SelectStmt"],
+                new_tbl_name,
+                tables={new_tbl_name: tables[new_tbl_name]},
+            )
+
+        tbl = frm.get("JoinExpr", None)
+        if tbl:
+            joined_tables = list(map(lambda x: tbl.get(x), ["larg", "rarg"]))
+            return handle_from_clause(joined_tables, output, tables)
+
         tbl = frm.get("RangeVar", None)
+        assert tbl is not None
 
-        if tbl is None:
-            # @TODO This could also be SubQuery style. I think it can be either a Join or
-            # SubQuery and those can hold each other within themselves...need to check postgres manual to confrim
-            tbl = frm.get("JoinExpr", None)
-            assert tbl is not None, "Expecting the dict to have a key 'JoinExpr'"
-
-            joined_tables = map(lambda x: tbl.get(x), ["larg", "rarg"])
-            [handle_joins(t, output, tables) for t in joined_tables]
-            return
-
-        use_alias = tbl.get("alias", {}).get("Alias", {}).get("aliasname", None)
-        t_name = use_alias if use_alias else tbl["relname"]
-        tables[t_name] = Table(t_name)
+        name_tbl(tbl, tables)
 
 
-def handle_select_stmt(res, output_name=None, tables=None, with_links=True):
+def handle_select_stmt(res, output_name=None, tables=None):
     """
     Create tables and populate them with columns from parser's output
 
     Args:
         res (dict): The response structure from the parser
         tables (dict): Map of currently known tables. Dict is mutated.
-        with_links (bool): Passed to handle_cols
     """
     if output_name is None:
         output_name = f"output-{str(uuid4())[:8]}"
@@ -210,8 +189,8 @@ def handle_select_stmt(res, output_name=None, tables=None, with_links=True):
     actual_table = tables.get(output_name, Table(output_name))
     tables[output_name] = actual_table
 
-    handle_from_clause(res.get("fromClause"), output_name, tables)
-    handle_cols(res["targetList"], output_name, tables, with_links)
+    handle_from_clause(res, output_name, tables)
+    handle_cols(res["targetList"], output_name, tables)
     return tables
 
 
