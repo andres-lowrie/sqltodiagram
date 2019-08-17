@@ -99,6 +99,8 @@ def handle_cols(target_list, output, tables=None):
             if name_field:
                 name = name_field["str"]
 
+        # Only add columns to table if they don't already exist on it
+        # if c.name not in [x.name for x in tables[output].columns]:
         c = Column(name, is_star=is_star, table=tables[output])
         tables[output].columns.append(c)
 
@@ -110,7 +112,7 @@ def handle_cols(target_list, output, tables=None):
             ancestor_col = Column(
                 name, is_star=is_star, table=tables[ancestor_tbl_name]
             )
-            tables[ancestor_tbl_name].columns.append(ancestor_col)
+            # tables[ancestor_tbl_name].columns.append(ancestor_col)
             c.came_from = (tables[ancestor_tbl_name], ancestor_col)
         else:
             # If the sql stmt didn't use the `tbl.col` syntax then the best we can do is have the output table point to the
@@ -154,24 +156,22 @@ def handle_from_clause(res, output, tables=None):
     for frm in res:
         # Get to the lowest grain first
 
-        tbl = frm.get("RangeSubselect")
-        if tbl:
+        if frm.get("RangeSubselect", None):
+            tbl = frm.get("RangeSubselect")
             new_tbl_name = name_tbl(tbl, tables)
-            return handle_select_stmt(
+            handle_select_stmt(
                 tbl["subquery"]["SelectStmt"],
                 new_tbl_name,
                 tables={new_tbl_name: tables[new_tbl_name]},
             )
-
-        tbl = frm.get("JoinExpr", None)
-        if tbl:
+        elif frm.get("JoinExpr", None):
+            tbl = frm.get("JoinExpr", None)
             joined_tables = list(map(lambda x: tbl.get(x), ["larg", "rarg"]))
-            return handle_from_clause(joined_tables, output, tables)
-
-        tbl = frm.get("RangeVar", None)
-        assert tbl is not None
-
-        name_tbl(tbl, tables)
+            handle_from_clause(joined_tables, output, tables)
+        else:
+            tbl = frm.get("RangeVar", None)
+            assert tbl is not None
+            name_tbl(tbl, tables)
 
 
 def handle_select_stmt(res, output_name=None, tables=None):
@@ -196,6 +196,7 @@ def handle_select_stmt(res, output_name=None, tables=None):
 
 # PROCESS
 tables = handle_select_stmt(res, "output", {})
+print(tables)
 
 
 # RENDERING
