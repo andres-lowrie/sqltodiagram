@@ -109,16 +109,19 @@ def handle_cols(target_list, output, tables=None):
             ancestor_tbl_name = fields[0].get("String").get("str")
             # In order to make a more specific graph, we'll copy this column onto the ancestor table so that the edge
             # can point to it
+            # @TODO: Insted of that ^, it should see if the ancestor_tbl already had a column with the same name and
+            # instead link to that. It doesn't, then it should "copy" over the column
             ancestor_col = Column(
                 name, is_star=is_star, table=tables[ancestor_tbl_name]
             )
-            # tables[ancestor_tbl_name].columns.append(ancestor_col)
+            tables[ancestor_tbl_name].columns.append(ancestor_col)
             c.came_from = (tables[ancestor_tbl_name], ancestor_col)
         else:
             # If the sql stmt didn't use the `tbl.col` syntax then the best we can do is have the output table point to the
             # tables outlined in the `from` section of the sql statement
             #
             # We'll only want to draw one line between columns and tables to keep the graph readable
+            # @TODO: If should only do this if the other_table doesn't already have a column linked back to this table
             other_tables = [
                 tables[k]
                 for k, v in tables.items()
@@ -161,8 +164,11 @@ def handle_from_clause(res, output, tables=None):
             new_tbl_name = name_tbl(tbl, tables)
             handle_select_stmt(
                 tbl["subquery"]["SelectStmt"],
-                new_tbl_name,
-                tables={new_tbl_name: tables[new_tbl_name]},
+                None,
+                tables,
+                # @TODO: This ^ (when the full tables dict is passed) is technically correct , however the graph looks
+                # ugly because of how the linking is done. The linking logic needs to be given a link of tables to link
+                # to or something in order to produce the correct graph and still make it readable
             )
         elif frm.get("JoinExpr", None):
             tbl = frm.get("JoinExpr", None)
