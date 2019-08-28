@@ -162,22 +162,23 @@ def handle_from_clause(res, output, tables=None):
         if frm.get("RangeSubselect", None):
             tbl = frm.get("RangeSubselect")
             new_tbl_name = name_tbl(tbl, tables)
-            handle_select_stmt(
+            sub_tables = handle_select_stmt(
                 tbl["subquery"]["SelectStmt"],
-                None,
-                tables,
-                # @TODO: This ^ (when the full tables dict is passed) is technically correct , however the graph looks
-                # ugly because of how the linking is done. The linking logic needs to be given a link of tables to link
-                # to or something in order to produce the correct graph and still make it readable
+                new_tbl_name,
+                tables={new_tbl_name: tables[new_tbl_name]},
             )
+            tables = {**tables, **sub_tables}
         elif frm.get("JoinExpr", None):
             tbl = frm.get("JoinExpr", None)
             joined_tables = list(map(lambda x: tbl.get(x), ["larg", "rarg"]))
-            handle_from_clause(joined_tables, output, tables)
+            sub_tables = handle_from_clause(joined_tables, output, tables)
+            tables = {**tables, **sub_tables}
         else:
             tbl = frm.get("RangeVar", None)
             assert tbl is not None
             name_tbl(tbl, tables)
+
+    return tables
 
 
 def handle_select_stmt(res, output_name=None, tables=None):
@@ -195,7 +196,9 @@ def handle_select_stmt(res, output_name=None, tables=None):
     actual_table = tables.get(output_name, Table(output_name))
     tables[output_name] = actual_table
 
-    handle_from_clause(res, output_name, tables)
+    tables = handle_from_clause(res, output_name, tables)
+    # @TODO here we have to add a list of which tables the cols should link to.
+    # That would make the rendering correct
     handle_cols(res["targetList"], output_name, tables)
     return tables
 
