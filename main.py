@@ -162,6 +162,7 @@ def handle_from_clause(res, output, tables=None):
         if frm.get("RangeSubselect", None):
             tbl = frm.get("RangeSubselect")
             new_tbl_name = name_tbl(tbl, tables)
+            print("before recursive call")
             sub_tables = handle_select_stmt(
                 tbl["subquery"]["SelectStmt"],
                 new_tbl_name,
@@ -197,6 +198,8 @@ def handle_select_stmt(res, output_name=None, tables=None):
     tables[output_name] = actual_table
 
     tables = handle_from_clause(res, output_name, tables)
+
+    pdb.set_trace()
     # @TODO here we have to add a list of which tables the cols should link to.
     # That would make the rendering correct
     handle_cols(res["targetList"], output_name, tables)

@@ -1,27 +1,34 @@
 #+TITLE: notes
-
-* If we're going to create all the tables first then we need to parse inside out
-  where all the tables from the subquery are processed first
-* Return Types
-** targetList
-  List of `ResTarget`s
-  The table that we want to generate
-** ResTarget
-   name = alias of column in result if given
-   val = `ColumnRef`
-** ColumnRef
-  holds the `field`s that will be returned.
-  It can be keyed as type or have a special keys like "A_Star"
-** RangeSubselect
-   holds embedded select structure in `subquery`
-   and the alias that postgres requires in `alias`
-** RangeVar
-   Refers to the table
-* graphviz
-** "tables" need to be nodes
-** "columns" need to be "fields"
-** "edges" need to be relationships
-* Things to handle
-** "resTargets" can have multiple fields in the columnRef dict
-   Whatever function ends up handling creating the table nodes should be able to
-   take both fqn (Fully Qualified Names) or just column names.
+* notes on parser output and graphviz
+** If we're going to create all the tables first then we need to parse inside out
+   where all the tables from the subquery are processed first
+** Return Types
+*** targetList
+   List of `ResTarget`s
+   The table that we want to generate
+*** ResTarget
+    name = alias of column in result if given
+    val = `ColumnRef`
+*** ColumnRef
+   holds the `field`s that will be returned.
+   It can be keyed as type or have a special keys like "A_Star"
+*** RangeSubselect
+    holds embedded select structure in `subquery`
+    and the alias that postgres requires in `alias`
+*** RangeVar
+    Refers to the table
+** graphviz
+*** "tables" need to be nodes
+*** "columns" need to be "fields"
+*** "edges" need to be relationships
+** Things to handle
+*** "resTargets" can have multiple fields in the columnRef dict
+    Whatever function ends up handling creating the table nodes should be able to
+    take both fqn (Fully Qualified Names) or just column names.
+* TODO we should mark a table as "exhausted"
+  main.py  line 37 (handle_select_stmt fn)
+  where exhausted means that all the columns from that table have been linked
+  then in the `handle_cols` method we can skip linking to tables that are exhausted
+  
+  this is to address the issue where the main "output" table is linked to all
+  tables, even tables of subqueries that allready have been accounted for
